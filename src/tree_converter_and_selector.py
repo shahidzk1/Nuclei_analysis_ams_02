@@ -9,7 +9,10 @@ class TreeHandler:
     def __init__(self, file_path, tree_name, n_jobs=None):
         """"
 This class imports a root tree file and can convert to a dataframe. It can also apply selections on the data and store it as a dataframe
-
+use case:
+path = f"/path/of/the/root/file"
+df_O_frag_man, df_O_non_frag_man = TreeHandler(f"{path}/O.root",
+                                               "t1",2).labeled(20, 21, 13, 'tk_rigidity_0[2][2]', rigidity_low, rigidity_up)
 Args:
     file_path_name (string)   : The address of the root file and its name
     tree_name      (string)   : The name of the TTree object inside the file
