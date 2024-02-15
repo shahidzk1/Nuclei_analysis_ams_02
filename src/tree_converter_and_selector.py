@@ -61,9 +61,9 @@ Args:
         except Exception as e:
             raise ValueError(f"Error converting tree to dataframe: {str(e)}") from e
         
-    def selection_bounds_based(self, variable_name, lower_bound, upper_bound):
+    def selection_bounds_based(self, variable_name, lower_bound, upper_bound, df=None):
         """Returns data from dataframe by applying selection on a variable"""
-        df = self._get_dataframe()
+        df = self._get_dataframe() if df is None else df
         try:
             selected_df = df[(df[variable_name] >= lower_bound) & (df[variable_name] < upper_bound)]
             del df
@@ -117,3 +117,93 @@ Args:
         df_non_frag['label'] = label_non_frag
         gc.collect()
         return df_frag, df_non_frag
+    
+    def tight_nuclei_sig_selec(self,z, var_L1_charge=None,
+                           L1_charge_low=None,L1_charge_up=None,
+                           var_inner_trcker_charge=None,
+                           inner_trcker_charge_low=None,
+                           inner_trcker_charge_up = None,
+                           var_upper_tof_1=None,
+                           var_upper_tof_2=None,
+                           upper_tof_low=None,
+                           upper_tof_up=None,
+                           var_low_tof_1 = None,
+                           var_low_tof_2 = None,
+                           low_tof_low=None,
+                           low_tof_up=None,
+                           var_scnd_trcker_trck_bit_y=None,
+                           var_scnd_trcker_trck_bit_xy=None,
+                           var_2nd_trckr_trk_rig = None,
+                              ):
+        """"
+            This function selects a nuclei species by
+            applying tight manual selections based on the 
+            charge of a nuclei species for the AMS-02 Pass8 data.
+            Args:
+                df                  (pd.core.frame.DataFrame)    : Pass-8 data converted to flat trees
+                z                   (int)                        : charge of nuclei
+        """
+        #variables
+        var_L1_charge = var_L1_charge or 'tk_qln0_0_2'
+        var_inner_trcker_charge = var_inner_trcker_charge or 'tk_qin0_2'
+        var_upper_tof_1 = var_upper_tof_1 or 'tof_ql_0'
+        var_upper_tof_2 = var_upper_tof_2 or 'tof_ql_1'
+        var_upper_tof_avg = 'tof_up_avg'
+        var_low_tof_1 = var_low_tof_1 or 'tof_ql_2'
+        var_low_tof_2 = var_low_tof_2 or 'tof_ql_3'
+        var_low_tof_avg = 'tof_low_avg'
+        var_scnd_trcker_trck_bit_y = var_scnd_trcker_trck_bit_y or 'betah2hby_sum'
+        var_scnd_trcker_trck_bit_xy = var_scnd_trcker_trck_bit_xy or 'betah2hbxy_sum'
+        var_2nd_trckr_trk_rig = var_2nd_trckr_trk_rig or 'betah2r'
+        #selections definition
+        L1_charge_low = L1_charge_low or (z - 0.3)
+        L1_charge_up  = L1_charge_up or (z + 0.3)
+        upper_tof_low = upper_tof_low or (z-(0.625-0.0225*(z-9)))
+        upper_tof_up = upper_tof_up or z + 1
+        low_tof_low = low_tof_low or (z-0.625-0.0225*(z-9))
+        low_tof_up = low_tof_up or z-0
+        inner_trcker_charge_low = inner_trcker_charge_low or (z - 0.3)
+        inner_trcker_charge_up  = inner_trcker_charge_up or (z+0.3)
+        #selections applications
+        df = self.selection_bounds_based(var_L1_charge,
+                                         L1_charge_low,
+                                         L1_charge_up)
+        df = self.selection_bounds_based(var_inner_trcker_charge,
+                                         inner_trcker_charge_low,
+                                         inner_trcker_charge_up, df)
+        #new variable definition
+        df[var_upper_tof_avg] = (df[var_upper_tof_1]+df[var_upper_tof_2])/2
+        df[var_low_tof_avg]   = (df[var_low_tof_1]+df[var_low_tof_2])/2
+        if z>=9:
+            df = df[ (df[var_upper_tof_avg]>= upper_tof_low) & (df[var_upper_tof_avg]<=upper_tof_up)]
+            df = df[ df[var_low_tof_avg]> low_tof_low]
+        else:
+            df = df[(df[var_upper_tof_avg]>= z-0.6) & (df[var_upper_tof_avg]<=upper_tof_up) ]
+            df = df[ df[var_low_tof_avg] > z-0.6]
+        df = df[(df[var_scnd_trcker_trck_bit_y]<3) & (df[var_scnd_trcker_trck_bit_xy]<5) & (df[var_2nd_trckr_trk_rig]<0.5)]
+        return df
+    
+    def nuclei_fragments_selec(self, z,
+                               var_L1_charge=None,
+                               L1_charge_low=None,
+                               L1_charge_up=None,
+                               var_inner_trcker_charge=None,
+                               inner_trcker_charge_low=None):
+        """"
+            This function selects fragments of a nuclei species by
+            applying manual selections based on the charge
+            of a nuclei species for the AMS-02 Pass8 data.
+            Args:
+                df                  (pd.core.frame.DataFrame)    : Pass-8 data converted to flat trees
+                z                   (int)                        : charge of nuclei
+        """
+        var_L1_charge = var_L1_charge or 'tk_qln0_0_2'
+        var_inner_trcker_charge = var_inner_trcker_charge or 'tk_qin0_2'
+        L1_charge_low = L1_charge_low or (z - 0.5)
+        L1_charge_up  = L1_charge_up or (z + 0.5)
+        inner_trcker_charge_low = inner_trcker_charge_low or (z - 0.5)
+        df = self.selection_bounds_based(var_L1_charge,
+                                         L1_charge_low,
+                                         L1_charge_up)
+        df = df[df[var_inner_trcker_charge]<=inner_trcker_charge_low]
+        return df
