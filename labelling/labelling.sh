@@ -6,7 +6,6 @@ source myvenv/bin/activate
 pip install numpy
 pip install pandas
 pip install uproot==4.3.7
-pip install xgboost==2.0.2
 pip install scikit-learn==1.2.2
 
 log_dir=/afs/cern.ch/user/k/khansh/private/python/labelling/log/
@@ -16,4 +15,4 @@ error_dir=/afs/cern.ch/user/k/khansh/private/python/labelling/errors
 mkdir -p ${log_dir} ${output_dir} ${error_dir}
 cd /afs/cern.ch/user/k/khansh/private/python/labelling/
 python3 --version
-python3 hpo_cnn.py
+python3 labelling.py
