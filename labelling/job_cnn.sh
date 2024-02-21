@@ -1,5 +1,5 @@
 universe                = vanilla
-executable              = train_cnn.sh
+executable              = labelling.sh
 requirements = 
 #MY.WantOS = "el9"
 
