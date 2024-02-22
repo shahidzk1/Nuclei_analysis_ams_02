@@ -1,5 +1,5 @@
 universe                = vanilla
-executable              = labelling.sh
+executable              = train_labelling.sh
 requirements = 
 #MY.WantOS = "el9"
 

@@ -97,6 +97,10 @@ Args:
             if charge_sel == True:
                 selected_df = selected_df[ (selected_df[var_inner_trcker_charge]>= (nuclei_charge-0.7))
                                          & (selected_df[var_inner_trcker_charge]<= (nuclei_charge+0.7))]
+                selected_df1 = df[ (df[frag_separation_var[layer_info]] < 0) &
+                                 (selected_df[var_inner_trcker_charge]>= (nuclei_charge-0.7)) &
+                                         (selected_df[var_inner_trcker_charge]<= (nuclei_charge+0.7))]
+                
         elif frag_option == 'fragmented':
             selected_df = df[df[frag_separation_var[layer_info]] < 0]
             if charge_sel == True:
