@@ -22,4 +22,5 @@ should_transfer_files   = NO
 #nextweek     = 1 week
 # Remaining job parameters
 RequestCpus = 20
+request_gpus = 1
 queue 1

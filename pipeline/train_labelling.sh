@@ -3,9 +3,11 @@
 
 python3 -m virtualenv myvenv
 source myvenv/bin/activate
+pip install optuna==3.2.0
 pip install numpy
 pip install pandas
 pip install uproot==4.3.7
+pip install xgboost==2.0.2
 pip install scikit-learn==1.2.2
 
 log_dir=/afs/cern.ch/user/k/khansh/private/python/labelling/log/
@@ -16,3 +18,5 @@ mkdir -p ${log_dir} ${output_dir} ${error_dir}
 cd /afs/cern.ch/user/k/khansh/private/python/labelling/
 python3 --version
 python3 labelling.py
+python3 train_data.py
+python3 hpo_xgb.py

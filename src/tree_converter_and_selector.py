@@ -72,10 +72,14 @@ Args:
         except KeyError as e:
             raise KeyError(f"Variable not found in dataframe: {variable_name}") from e
         
-    def fragmentation_selection(self, layer_info, frag_option, variable_name, lower_bound, upper_bound, df_option=None):
+    def fragmentation_selection(self, layer_info , frag_option, variable_name, lower_bound, upper_bound, charge_sel=None,
+                                var_inner_trcker_charge=None,
+                                nuclei_charge=None,
+                                nuclei_charge_low=None,
+                                nuclei_charge_up=None,
+                                df_option=None):
         '''
-        This method applies MC selection inside detector parts to check
-        whether a nuclei has fragmented or not inside this part
+        The function applies the MC selection on detector parts to check whether a nuclei has fragmented or not
 
         Args:
             layer_info (int)        : The number of layers to check for
@@ -90,8 +94,17 @@ Args:
         
         if frag_option == 'non-fragmented':
             selected_df = df[df[frag_separation_var[layer_info]] > 0]
+            if charge_sel == True:
+                selected_df = selected_df[ (selected_df[var_inner_trcker_charge]>= (nuclei_charge-0.7))
+                                         & (selected_df[var_inner_trcker_charge]<= (nuclei_charge+0.7))]
+                selected_df1 = df[ (df[frag_separation_var[layer_info]] < 0) &
+                                 (selected_df[var_inner_trcker_charge]>= (nuclei_charge-0.7)) &
+                                         (selected_df[var_inner_trcker_charge]<= (nuclei_charge+0.7))]
+                
         elif frag_option == 'fragmented':
             selected_df = df[df[frag_separation_var[layer_info]] < 0]
+            if charge_sel == True:
+                selected_df = selected_df[ (selected_df[var_inner_trcker_charge]<= (nuclei_charge-0.5)) ]
         else:
             raise ValueError("Invalid frag_option value. Use 'fragmented' or 'non-fragmented'.")
         del df
@@ -99,7 +112,14 @@ Args:
         return selected_df
     
             
-    def labeled(self, label_frag, label_non_frag, layer_info, variable_name, lower_bound, upper_bound, df_option=None):
+    def labeled(self, label_frag,
+                label_non_frag,
+                layer_info, variable_name,
+                lower_bound,
+                upper_bound,charge_sel=None,
+                var_inner_trcker_charge=None,
+                nuclei_charge=None,
+                df_option=None):
         '''
         The function applies the fragmentation_selection function and labels the data
 
@@ -111,8 +131,15 @@ Args:
             df_frag (Pandas.Dataframe)    : A subset of df after the application of fragmentation_selection with label "label_frag"
             df_non_frag (Pandas.Dataframe): A subset of df after the application of fragmentation_selection with label "label_non_frag"
         '''
-        df_frag = self.fragmentation_selection(layer_info, 'fragmented', variable_name, lower_bound, upper_bound, df_option)
-        df_non_frag = self.fragmentation_selection(layer_info, 'non-fragmented', variable_name, lower_bound, upper_bound, df_option)
+        charge_sel = charge_sel or False
+        var_inner_trcker_charge = var_inner_trcker_charge or 'tk_qin0[2]'
+        nuclei_charge= nuclei_charge or 9
+        df_frag = self.fragmentation_selection(layer_info, 'fragmented', variable_name, lower_bound, upper_bound, charge_sel=charge_sel,
+                                               var_inner_trcker_charge=var_inner_trcker_charge,
+                                               nuclei_charge = nuclei_charge)
+        df_non_frag = self.fragmentation_selection(layer_info, 'non-fragmented', variable_name, lower_bound, upper_bound, charge_sel=charge_sel,
+                                               var_inner_trcker_charge=var_inner_trcker_charge,
+                                               nuclei_charge = nuclei_charge)
         df_frag['label'] = label_frag
         df_non_frag['label'] = label_non_frag
         gc.collect()
