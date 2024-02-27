@@ -22,5 +22,5 @@ python3 --version
 input_json_path='/afs/cern.ch/user/k/khansh/private/python/labelling/files_info_labelling_updated.json'
 output_json_path='/afs/cern.ch/user/k/khansh/private/python/labelling/output_labelling.json'
 python3 labelling.py $input_json_path $output_json_path
-#python3 train_data.py
+python3 train_data.py $output_json_path
 #python3 hpo_xgb.py
