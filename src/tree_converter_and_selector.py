@@ -8,7 +8,7 @@ import logging
 class TreeHandler:
     def __init__(self, file_path, tree_name, n_jobs=None):
         """"
-This class imports a root tree file and can converts it to a dataframe. It can also apply selections on the data and store it as a dataframe
+This class imports a root tree file and can convert to a dataframe. It can also apply selections on the data and store it as a dataframe
 use case:
 path = f"/path/of/the/root/file"
 df_O_frag_man, df_O_non_frag_man = TreeHandler(f"{path}/O.root",
@@ -79,7 +79,7 @@ Args:
                                 nuclei_charge_up=None,
                                 df_option=None):
         '''
-        The function applies the MC selection on detector parts to check whether a nuclei has fragmented or not
+        The function applies the MC selection on detector parts to check whether a nuclei has fragmented or not. 
 
         Args:
             layer_info (int)        : The number of layers to check for
@@ -93,18 +93,26 @@ Args:
         df = self.selection_bounds_based(variable_name, lower_bound, upper_bound)
         
         if frag_option == 'non-fragmented':
+            # the initial implementation
             selected_df = df[df[frag_separation_var[layer_info]] > 0]
             if charge_sel == True:
-                selected_df = selected_df[ (selected_df[var_inner_trcker_charge]>= (nuclei_charge-0.7))
-                                         & (selected_df[var_inner_trcker_charge]<= (nuclei_charge+0.7))]
+                # updated because at the end the var_inner_trcker_charge will be used
+                # so select also candidates to be fragmented or not on this basis. 
+                # For example, if GEANT info gives that it has fragmented but its charge lies in the z charge 3.5 sigma
+                # then it is a non-fragmented nucleus
+                selected_df = selected_df[ (selected_df[var_inner_trcker_charge]>= (nuclei_charge-3.5*(selected_df[var_inner_trcker_charge].std())))
+                                         & (selected_df[var_inner_trcker_charge]<= (nuclei_charge+3.5*(selected_df[var_inner_trcker_charge].std())))]
                 selected_df1 = df[ (df[frag_separation_var[layer_info]] < 0) &
-                                 (selected_df[var_inner_trcker_charge]>= (nuclei_charge-0.7)) &
-                                         (selected_df[var_inner_trcker_charge]<= (nuclei_charge+0.7))]
+                                 (selected_df[var_inner_trcker_charge]>= (nuclei_charge-2*(selected_df[var_inner_trcker_charge].std()))) &
+                                         (selected_df[var_inner_trcker_charge]<= (nuclei_charge+2*(selected_df[var_inner_trcker_charge].std())))]
+                selected_df = selected_df.reset_index(drop=True)
+                selected_df1 = selected_df1.reset_index(drop=True)
+                selected_df = pd.concat([selected_df, selected_df1])
                 
         elif frag_option == 'fragmented':
             selected_df = df[df[frag_separation_var[layer_info]] < 0]
             if charge_sel == True:
-                selected_df = selected_df[ (selected_df[var_inner_trcker_charge]<= (nuclei_charge-0.5)) ]
+                selected_df = selected_df[ (selected_df[var_inner_trcker_charge]<= (nuclei_charge-0.1*(selected_df[var_inner_trcker_charge].std()))) ]
         else:
             raise ValueError("Invalid frag_option value. Use 'fragmented' or 'non-fragmented'.")
         del df
@@ -121,44 +129,32 @@ Args:
                 nuclei_charge=None,
                 df_option=None):
         '''
-        The function applies the fragmentation_selection function and labels the data
+        The function labels the data by using fragmentation_selection function.  
 
         Args:
-            label_frag (int)           : The label for the fragmented data
-            label_non_frag (int)       : The label for the non-fragmented data
-            layer_info (int)           : The number of layers to check for.
-            variable_name (string)     : The name of the variable used for selection.
-            lower_bound, upper_bound   : The bounds for the specified variable.
-            charge_sel (bool, optional): If True, additional charge-based selection is applied.
-            var_inner_trcker_charge (optional): The variable related to inner tracker charge.
-            nuclei_charge (optional)   : The charge value for nuclei.
-            df_option (optional)       : Additional options related to dataframes.
+            label_frag (int)        : The label for the fragmented data
+            label_non_frag (int)    : The label for the non-fragmented data
 
         Returns:
             df_frag (Pandas.Dataframe)    : A subset of df after the application of fragmentation_selection with label "label_frag"
             df_non_frag (Pandas.Dataframe): A subset of df after the application of fragmentation_selection with label "label_non_frag"
         '''
-        try:
-            charge_sel = charge_sel or False
-            var_inner_trcker_charge = var_inner_trcker_charge or 'tk_qin0[2]'
-            nuclei_charge= nuclei_charge or 9
-            df_frag = self.fragmentation_selection(layer_info, 'fragmented', variable_name, lower_bound, upper_bound, charge_sel=charge_sel,
+        # variables definition
+        charge_sel = charge_sel or False
+        var_inner_trcker_charge = var_inner_trcker_charge or 'tk_qin0[2]'
+        nuclei_charge= nuclei_charge or 9
+        #application of fragmentation_selection
+        df_frag = self.fragmentation_selection(layer_info, 'fragmented', variable_name, lower_bound, upper_bound, charge_sel=charge_sel,
                                                var_inner_trcker_charge=var_inner_trcker_charge,
                                                nuclei_charge = nuclei_charge)
-            df_non_frag = self.fragmentation_selection(layer_info, 'non-fragmented', variable_name, lower_bound, upper_bound, charge_sel=charge_sel,
+        df_non_frag = self.fragmentation_selection(layer_info, 'non-fragmented', variable_name, lower_bound, upper_bound, charge_sel=charge_sel,
                                                var_inner_trcker_charge=var_inner_trcker_charge,
                                                nuclei_charge = nuclei_charge)
-            df_frag['label'] = label_frag
-            df_non_frag['label'] = label_non_frag
-            gc.collect()
-            return df_frag, df_non_frag
-            
-        except KeyError as ke:
-            raise KeyError(f"Variable not found in dataframe: {ke}") from ke
-        except ValueError as ve:
-            raise ValueError(f"Error in labeled method: {ve}") from ve
-        except Exception as e:
-            raise RuntimeError(f"Unexpected error in labeled method: {e}") from e
+        #labelling
+        df_frag['label'] = label_frag
+        df_non_frag['label'] = label_non_frag
+        gc.collect()
+        return df_frag, df_non_frag
     
     def tight_nuclei_sig_selec(self,z, var_L1_charge=None,
                            L1_charge_low=None,L1_charge_up=None,
