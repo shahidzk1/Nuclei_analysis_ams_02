@@ -70,7 +70,7 @@ Args:
             gc.collect()
             return selected_df
         except KeyError as e:
-            raise KeyError(f"Variable not found in dataframe: {variable_name}") from e
+            raise KeyError(f"Variable not found in dataframe: {variable_name}") from e                   
         
     def fragmentation_selection(self, layer_info , frag_option, variable_name, lower_bound, upper_bound, charge_sel=None,
                                 var_inner_trcker_charge=None,
@@ -112,7 +112,15 @@ Args:
         elif frag_option == 'fragmented':
             selected_df = df[df[frag_separation_var[layer_info]] < 0]
             if charge_sel == True:
-                selected_df = selected_df[ (selected_df[var_inner_trcker_charge]<= (nuclei_charge-0.1*(selected_df[var_inner_trcker_charge].std()))) ]
+                if layer_info==0:
+                    selected_df = selected_df[ (selected_df[var_inner_trcker_charge]<= (nuclei_charge-0.1*(selected_df[var_inner_trcker_charge].std()))) ]
+                if layer_info >0:
+                    selected_df1 = selected_df[selected_df[frag_separation_var[0]] < 0]
+                    selected_df1 = selected_df1[ (selected_df1[var_inner_trcker_charge]<= (nuclei_charge-0.1*(selected_df1[var_inner_trcker_charge].std()))) ]
+                    selected_df = selected_df[ (selected_df[var_inner_trcker_charge]<= (nuclei_charge-0.1*(selected_df[var_inner_trcker_charge].std()))) ]
+                    mask = selected_df.isin(selected_df1.to_dict('list')).all(axis=1)
+                    mask = ~mask
+                    selected_df = selected_df[mask]
         else:
             raise ValueError("Invalid frag_option value. Use 'fragmented' or 'non-fragmented'.")
         del df
